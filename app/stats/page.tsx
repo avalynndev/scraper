@@ -1,39 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { IconArrowLeft } from "@tabler/icons-react";
-
-const MOCK_STATS = {
-  totalGained: 2450,
-  totalLost: 3890,
-  netProfit: -1440,
-  biggestWin: 500,
-  biggestLoss: 800,
-  timesBroke: 3,
-  gamesPlayed: {
-    "ALL-IN BUTTON": 47,
-    "RIGGED SLOT": 28,
-    "WHEEL OF REGRET": 15,
-    "DEALER IS A LIAR": 12,
-    "LOOTBOX HELL": 8,
-    "MARTINGALE SIM": 2,
-  },
-  winRates: {
-    "ALL-IN BUTTON": 0.43,
-    "RIGGED SLOT": 0.12,
-    "WHEEL OF REGRET": 0.31,
-    "DEALER IS A LIAR": 0.58,
-    "LOOTBOX HELL": 0.25,
-    "MARTINGALE SIM": 0.0,
-  },
-  worstGame: "RIGGED SLOT",
-  longestLossStreak: 12,
-  totalSpins: 112,
-  averageBet: 34,
-  timeSpentMinutes: 127,
-};
+import { loadState, resetState, type GlobalState } from "@/lib/gameStore";
 
 const VERDICTS = [
   "You should have stopped.",
@@ -45,9 +17,54 @@ const VERDICTS = [
 ];
 
 export default function StatsPage() {
-  const verdict = VERDICTS[Math.floor(Math.random() * VERDICTS.length)];
-  const profitColor =
-    MOCK_STATS.netProfit >= 0 ? "text-green-400" : "text-red-400";
+  const [state, setState] = useState<GlobalState | null>(null);
+  const [verdict] = useState(
+    () => VERDICTS[Math.floor(Math.random() * VERDICTS.length)],
+  );
+
+  useEffect(() => {
+    setState(loadState());
+  }, []);
+
+  const handleReset = () => {
+    resetState();
+    setState(loadState());
+  };
+
+  const handleExport = () => {
+    if (!state) return;
+    const blob = new Blob([JSON.stringify(state, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "casino-stats.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (!state) return null;
+
+  const { stats, balance } = state;
+  const netProfit = stats.totalGained - stats.totalLost;
+  const profitColor = netProfit >= 0 ? "text-green-400" : "text-red-400";
+
+  // Compute derived win rates
+  const winRates: Record<string, number> = {};
+  for (const [game, data] of Object.entries(stats.winRates)) {
+    winRates[game] = data.plays > 0 ? data.wins / data.plays : 0;
+  }
+
+  const sortedGames = Object.entries(stats.gamesPlayed).sort(
+    (a, b) => b[1] - a[1],
+  );
+
+  const mostPlayed = sortedGames[0]?.[0] ?? "—";
+  const worstGame =
+    Object.entries(winRates).sort((a, b) => a[1] - b[1])[0]?.[0] ?? "—";
+
+  const timeSpentMinutes = Math.floor(stats.timeSpentMs / 60000);
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
@@ -63,12 +80,18 @@ export default function StatsPage() {
           <IconArrowLeft size={14} />
           BACK TO FLOOR
         </Link>
-        <Badge
-          variant="outline"
-          className="border-blue-900 text-blue-400 font-mono text-xs"
-        >
-          BRUTAL HONESTY
-        </Badge>
+        <div className="flex items-center gap-4">
+          <div className="text-sm font-mono opacity-50">
+            BALANCE:{" "}
+            <span className="opacity-100 font-black">{balance} CRAPS</span>
+          </div>
+          <Badge
+            variant="outline"
+            className="border-blue-900 text-blue-400 font-mono text-xs"
+          >
+            BRUTAL HONESTY
+          </Badge>
+        </div>
       </nav>
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 lg:px-10 py-10 space-y-10">
@@ -90,24 +113,22 @@ export default function StatsPage() {
           <div className="border border-border p-6 space-y-2">
             <div className="text-xs font-mono opacity-30">TOTAL GAINED</div>
             <div className="font-black text-3xl tabular-nums text-green-400">
-              +{MOCK_STATS.totalGained.toLocaleString()}
+              +{stats.totalGained.toLocaleString()}
             </div>
             <div className="text-xs font-mono opacity-40">CRAPS</div>
           </div>
-
           <div className="border border-border p-6 space-y-2">
             <div className="text-xs font-mono opacity-30">TOTAL LOST</div>
             <div className="font-black text-3xl tabular-nums text-red-400">
-              −{MOCK_STATS.totalLost.toLocaleString()}
+              −{stats.totalLost.toLocaleString()}
             </div>
             <div className="text-xs font-mono opacity-40">CRAPS</div>
           </div>
-
           <div className="border border-border p-6 space-y-2">
             <div className="text-xs font-mono opacity-30">NET PROFIT</div>
             <div className={`font-black text-3xl tabular-nums ${profitColor}`}>
-              {MOCK_STATS.netProfit >= 0 ? "+" : ""}
-              {MOCK_STATS.netProfit.toLocaleString()}
+              {netProfit >= 0 ? "+" : ""}
+              {netProfit.toLocaleString()}
             </div>
             <div className="text-xs font-mono opacity-40">CRAPS</div>
           </div>
@@ -121,32 +142,27 @@ export default function StatsPage() {
             {[
               {
                 label: "Biggest win",
-                value: `+${MOCK_STATS.biggestWin}`,
+                value: `+${stats.biggestWin}`,
                 color: "text-green-400",
               },
               {
                 label: "Biggest loss",
-                value: `−${MOCK_STATS.biggestLoss}`,
+                value: `−${stats.biggestLoss}`,
                 color: "text-red-400",
               },
               {
                 label: "Times went broke",
-                value: MOCK_STATS.timesBroke,
+                value: stats.timesBroke,
                 color: "text-red-400",
               },
               {
                 label: "Longest loss streak",
-                value: MOCK_STATS.longestLossStreak,
+                value: stats.longestLossStreak,
                 color: "text-red-400",
               },
               {
                 label: "Total spins/plays",
-                value: MOCK_STATS.totalSpins,
-                color: "",
-              },
-              {
-                label: "Average bet size",
-                value: `${MOCK_STATS.averageBet} CRAPS`,
+                value: stats.totalSpins,
                 color: "",
               },
             ].map(({ label, value, color }) => (
@@ -164,23 +180,26 @@ export default function StatsPage() {
 
           <div className="border border-border p-6 space-y-4">
             <div className="text-xs font-mono opacity-30 tracking-widest">
-              TIME ANALYSIS
+              SESSION ANALYSIS
             </div>
             {[
               {
                 label: "Time spent gambling",
-                value: `${MOCK_STATS.timeSpentMinutes} min`,
+                value:
+                  timeSpentMinutes > 0
+                    ? `${timeSpentMinutes} min`
+                    : "tracking…",
               },
               {
                 label: "Game that ruined you",
-                value: MOCK_STATS.worstGame,
+                value: worstGame,
                 color: "text-red-400",
               },
+              { label: "Most played game", value: mostPlayed },
               {
-                label: "Most played game",
-                value: Object.entries(MOCK_STATS.gamesPlayed).sort(
-                  (a, b) => b[1] - a[1],
-                )[0][0],
+                label: "Current CRAPS balance",
+                value: `${balance}`,
+                color: balance < 20 ? "text-red-400" : "text-green-400",
               },
             ].map(({ label, value, color = "" }) => (
               <div
@@ -194,66 +213,82 @@ export default function StatsPage() {
           </div>
         </div>
 
-        <div className="border border-border">
-          <div className="p-6 border-b border-border">
-            <div className="text-xs font-mono opacity-30 tracking-widest">
-              GAMES PLAYED
+        {sortedGames.length > 0 ? (
+          <div className="border border-border">
+            <div className="p-6 border-b border-border">
+              <div className="text-xs font-mono opacity-30 tracking-widest">
+                GAMES PLAYED
+              </div>
+            </div>
+            <div className="divide-y divide-border">
+              {sortedGames.map(([game, plays]) => {
+                const wr = winRates[game] ?? 0;
+                const winRateColor =
+                  wr >= 0.5 ? "text-green-400" : "text-red-400";
+
+                return (
+                  <div
+                    key={game}
+                    className="p-4 flex items-center justify-between"
+                  >
+                    <div className="flex-1">
+                      <div className="font-mono text-sm">{game}</div>
+                      <div className="text-xs font-mono opacity-30 mt-1">
+                        {plays} rounds played
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="text-xs font-mono opacity-30">
+                          WIN RATE
+                        </div>
+                        <div
+                          className={`font-black tabular-nums ${winRateColor}`}
+                        >
+                          {(wr * 100).toFixed(0)}%
+                        </div>
+                      </div>
+                      <div className="w-32 h-2 border border-border overflow-hidden">
+                        <div
+                          className={`h-full ${
+                            wr >= 0.5 ? "bg-green-400" : "bg-red-400"
+                          } transition-all`}
+                          style={{ width: `${wr * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <div className="divide-y divide-border">
-            {Object.entries(MOCK_STATS.gamesPlayed).map(([game, plays]) => {
-              const winRate =
-                MOCK_STATS.winRates[game as keyof typeof MOCK_STATS.winRates];
-              const winRateColor =
-                winRate >= 0.5 ? "text-green-400" : "text-red-400";
-
-              return (
-                <div
-                  key={game}
-                  className="p-4 flex items-center justify-between"
-                >
-                  <div className="flex-1">
-                    <div className="font-mono text-sm">{game}</div>
-                    <div className="text-xs font-mono opacity-30 mt-1">
-                      {plays} rounds played
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <div className="text-xs font-mono opacity-30">
-                        WIN RATE
-                      </div>
-                      <div
-                        className={`font-black tabular-nums ${winRateColor}`}
-                      >
-                        {(winRate * 100).toFixed(0)}%
-                      </div>
-                    </div>
-                    <div className="w-32 h-2 border border-border overflow-hidden">
-                      <div
-                        className={`h-full ${winRate >= 0.5 ? "bg-green-400" : "bg-red-400"} transition-all`}
-                        style={{ width: `${winRate * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+        ) : (
+          <div className="border border-border p-10 text-center font-mono opacity-30">
+            No games played yet. Go lose some CRAPS first.
           </div>
-        </div>
+        )}
 
         <div className="flex gap-4">
-          <Button variant="outline" className="flex-1 font-mono">
+          <Button
+            variant="outline"
+            className="flex-1 font-mono"
+            onClick={handleExport}
+          >
             EXPORT DATA
           </Button>
-          <Button variant="destructive" className="flex-1 font-mono">
+          <Button
+            variant="destructive"
+            className="flex-1 font-mono"
+            onClick={handleReset}
+          >
             RESET ALL STATS
           </Button>
         </div>
 
         <div className="text-center font-mono text-xs opacity-20 leading-relaxed max-w-md mx-auto">
-          These statistics are tracked locally and persist across sessions. They
-          serve as a reminder of your inevitable statistical downfall.
+          Statistics are tracked in your browser's localStorage and persist
+          across sessions. They serve as a reminder of your inevitable
+          statistical downfall.
         </div>
       </main>
 

@@ -12,9 +12,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ModeToggle } from "@/components/mode-toggle";
 import Link from "next/link";
+import {
+  loadState,
+  saveState,
+  recordSpin,
+  recordBroke,
+  recordLossStreak,
+  type OwnedUpgrades,
+} from "@/lib/gameStore";
 
 export default function ScraperHomePage() {
-  const [scraps, setScraps] = React.useState(100);
+    const [hydrated, setHydrated] = React.useState(false);
+
+  const [balance, setBalanceState] = React.useState(100);
   const [houseMessage, setHouseMessage] = React.useState(
     "The house is watching.",
   );
@@ -29,6 +39,20 @@ export default function ScraperHomePage() {
     "Try again. We dare you.",
     "Statistical certainty approaches.",
   ];
+
+    React.useEffect(() => {
+      const state = loadState();
+      setBalanceState(state.balance);
+      setHydrated(true);
+    }, []);
+  
+    React.useEffect(() => {
+      if (!hydrated) return;
+      const state = loadState();
+      state.balance = balance;
+      saveState(state);
+      if (balance === 0) recordBroke();
+    }, [balance, hydrated]);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
@@ -105,9 +129,9 @@ export default function ScraperHomePage() {
               <div className="text-right space-y-2">
                 <div className="text-sm font-mono opacity-50">YOUR BALANCE</div>
                 <div className="text-6xl font-black tabular-nums tracking-tight text-green-400 drop-shadow-[0_0_20px_rgba(34,197,94,0.5)]">
-                  {scraps}
+                  {balance}
                 </div>
-                <div className="text-2xl font-mono opacity-60">SCRAPS</div>
+                <div className="text-2xl font-mono opacity-60">CRAPS</div>
               </div>
             </div>
           </div>
@@ -184,7 +208,7 @@ export default function ScraperHomePage() {
                 UPGRADES
               </CardTitle>
               <CardDescription className="font-mono text-xs">
-                Spend SCRAPS to rig the system
+                Spend CRAPS to rig the system
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -233,9 +257,9 @@ export default function ScraperHomePage() {
               <Button
                 variant="outline"
                 className="w-full border-red-900 text-red-400"
-                onClick={() => setScraps(100)}
+                onClick={() => setBalanceState(100)}
               >
-                Reset to 100 SCRAPS
+                Reset to 100 CRAPS
               </Button>
             </CardContent>
           </Card>
