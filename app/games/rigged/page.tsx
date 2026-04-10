@@ -59,7 +59,6 @@ export default function RiggedSlotPage() {
 
   const spinIntervals = useRef<NodeJS.Timeout[]>([]);
 
-  // Hydrate from localStorage on mount
   useEffect(() => {
     const state = loadState();
     setBalanceState(state.balance);
@@ -67,7 +66,6 @@ export default function RiggedSlotPage() {
     setHydrated(true);
   }, []);
 
-  // Persist balance whenever it changes (after hydration)
   useEffect(() => {
     if (!hydrated) return;
     const state = loadState();
@@ -129,7 +127,6 @@ export default function RiggedSlotPage() {
 
   const generateLosingReels = () => {
     const volatility = upgrades?.["volatility"];
-    // With volatility upgrade, ensure top symbols differ a lot (no accidental near-misses)
     if (volatility) {
       const s1 = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
       let s2 = s1;
@@ -156,7 +153,6 @@ export default function RiggedSlotPage() {
 
     const odds = calculateOdds(sessionSpins + 1);
 
-    // Show odds if upgrade purchased
     if (upgrades?.["odds-reveal"]) {
       setOddsInfo(`Win chance this spin: ${(odds * 100).toFixed(1)}%`);
     }

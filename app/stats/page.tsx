@@ -50,7 +50,6 @@ export default function StatsPage() {
   const netProfit = stats.totalGained - stats.totalLost;
   const profitColor = netProfit >= 0 ? "text-green-400" : "text-red-400";
 
-  // Compute derived win rates
   const winRates: Record<string, number> = {};
   for (const [game, data] of Object.entries(stats.winRates)) {
     winRates[game] = data.plays > 0 ? data.wins / data.plays : 0;

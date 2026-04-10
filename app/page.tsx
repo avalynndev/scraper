@@ -22,7 +22,7 @@ import {
 } from "@/lib/gameStore";
 
 export default function ScraperHomePage() {
-    const [hydrated, setHydrated] = React.useState(false);
+  const [hydrated, setHydrated] = React.useState(false);
 
   const [balance, setBalanceState] = React.useState(100);
   const [houseMessage, setHouseMessage] = React.useState(
@@ -40,19 +40,19 @@ export default function ScraperHomePage() {
     "Statistical certainty approaches.",
   ];
 
-    React.useEffect(() => {
-      const state = loadState();
-      setBalanceState(state.balance);
-      setHydrated(true);
-    }, []);
-  
-    React.useEffect(() => {
-      if (!hydrated) return;
-      const state = loadState();
-      state.balance = balance;
-      saveState(state);
-      if (balance === 0) recordBroke();
-    }, [balance, hydrated]);
+  React.useEffect(() => {
+    const state = loadState();
+    setBalanceState(state.balance);
+    setHydrated(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!hydrated) return;
+    const state = loadState();
+    state.balance = balance;
+    saveState(state);
+    if (balance === 0) recordBroke();
+  }, [balance, hydrated]);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
@@ -108,6 +108,8 @@ export default function ScraperHomePage() {
     },
   ];
 
+  if (!hydrated) return null; // avoid SSR mismatch
+
   return (
     <div className="min-h-screen overflow-hidden relative">
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
@@ -158,9 +160,7 @@ export default function ScraperHomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {games.map((game, index) => (
               <Link key={game.id} href={`/games/${game.id}`}>
-                <Card
-                  className="transition-all duration-300 group relative overflow-hidden"
-                >
+                <Card className="transition-all duration-300 group relative overflow-hidden">
                   <div
                     className={`absolute inset-0 bg-linear-to-br ${game.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
                   />

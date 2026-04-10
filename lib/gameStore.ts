@@ -64,7 +64,6 @@ export function loadState(): GlobalState {
     const raw = localStorage.getItem(KEY);
     if (!raw) return structuredClone(DEFAULT_STATE);
     const parsed = JSON.parse(raw) as GlobalState;
-    // merge to fill in any new keys added after first save
     return {
       ...DEFAULT_STATE,
       ...parsed,
