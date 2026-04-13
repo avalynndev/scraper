@@ -65,17 +65,11 @@ export default function ScraperHomePage() {
 
   const games = [
     {
-      id: "all-in",
-      name: "ALL-IN BUTTON",
-      description: "50% double. 50% nothing.",
-      danger: "EXTREME",
-      color: "from-red-600 to-orange-600",
-    },
-    {
       id: "rigged",
       name: "RIGGED SLOT",
       description: "The jackpot moves away from you.",
       danger: "HIGH",
+      disabled: false,
       color: "from-purple-600 to-pink-600",
     },
     {
@@ -83,32 +77,44 @@ export default function ScraperHomePage() {
       name: "WHEEL OF REGRET",
       description: "Spin costs rise. So do punishments.",
       danger: "MEDIUM",
+      disabled: false,
       color: "from-yellow-600 to-red-600",
-    },
-    {
-      id: "dealer",
-      name: "DEALER IS A LIAR",
-      description: "Trust nobody. Especially the dealer.",
-      danger: "VARIABLE",
-      color: "from-blue-600 to-cyan-600",
     },
     {
       id: "lootbox",
       name: "LOOTBOX HELL",
       description: "Items that ruin everything.",
       danger: "CHAOS",
+      disabled: false,
       color: "from-green-600 to-emerald-600",
+    },
+    {
+      id: "all-in",
+      name: "ALL-IN BUTTON",
+      description: "50% double. 50% nothing.",
+      danger: "EXTREME",
+      disabled: true,
+      color: "from-red-600 to-orange-600",
+    },
+    {
+      id: "dealer",
+      name: "DEALER IS A LIAR",
+      description: "Trust nobody. Especially the dealer.",
+      danger: "VARIABLE",
+      disabled: true,
+      color: "from-blue-600 to-cyan-600",
     },
     {
       id: "martingale",
       name: "MARTINGALE SIM",
       description: "Statistically guaranteed failure.",
       danger: "CERTAIN",
+      disabled: true,
       color: "from-gray-600 to-slate-600",
     },
   ];
 
-  if (!hydrated) return null; // avoid SSR mismatch
+  if (!hydrated) return null; 
 
   return (
     <div className="min-h-screen overflow-hidden relative">
@@ -158,11 +164,21 @@ export default function ScraperHomePage() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {games.map((game, index) => (
-              <Link key={game.id} href={`/games/${game.id}`}>
-                <Card className="transition-all duration-300 group relative overflow-hidden">
+            {games.map((game) => {
+              const cardContent = (
+                <Card
+                  className={`transition-all duration-300 group relative overflow-hidden ${
+                    game.disabled
+                      ? "opacity-50 grayscale cursor-not-allowed"
+                      : ""
+                  }`}
+                >
                   <div
-                    className={`absolute inset-0 bg-linear-to-br ${game.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                    className={`absolute inset-0 bg-linear-to-br ${game.color} ${
+                      game.disabled
+                        ? "opacity-5"
+                        : "opacity-0 group-hover:opacity-10"
+                    } transition-opacity duration-300`}
                   />
 
                   <CardHeader>
@@ -177,9 +193,11 @@ export default function ScraperHomePage() {
                         🎰
                       </div>
                     </div>
+
                     <CardTitle className="text-2xl font-black tracking-tight">
                       {game.name}
                     </CardTitle>
+
                     <CardDescription className="font-mono text-sm">
                       {game.description}
                     </CardDescription>
@@ -187,17 +205,23 @@ export default function ScraperHomePage() {
 
                   <CardContent>
                     <Button
-                      className="w-full font-bold tracking-wide"
-                      onClick={() => {
-                        console.log(`Playing ${game.id}`);
-                      }}
+                      disabled={game.disabled}
+                      className="w-full font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      PLAY NOW →
+                      {game.disabled ? "LOCKED" : "PLAY NOW →"}
                     </Button>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
+              );
+
+              return game.disabled ? (
+                <div key={game.id}>{cardContent}</div>
+              ) : (
+                <Link key={game.id} href={`/games/${game.id}`}>
+                  {cardContent}
+                </Link>
+              );
+            })}
           </div>
         </div>
 

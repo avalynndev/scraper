@@ -262,7 +262,7 @@ export default function RiggedSlotPage() {
   const isChaos = upgrades?.["chaos-mode"];
   const isCursed = upgrades?.["cursed-run"];
 
-  if (!hydrated) return null; // avoid SSR mismatch
+  if (!hydrated) return null;
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
