@@ -93,7 +93,7 @@ export default function ScraperHomePage() {
       name: "ALL-IN BUTTON",
       description: "50% double. 50% nothing.",
       danger: "EXTREME",
-      disabled: true,
+      disabled: false,
       color: "from-red-600 to-orange-600",
     },
     {
