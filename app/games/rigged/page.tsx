@@ -285,7 +285,6 @@ export default function RiggedSlotPage() {
           BACK TO FLOOR
         </Link>
         <div className="flex items-center gap-4 flex-wrap justify-end gap-y-2">
-          {/* Active upgrade badges */}
           {isChaos && (
             <Badge
               variant="outline"
@@ -426,7 +425,7 @@ export default function RiggedSlotPage() {
           {upgrades?.["odds-reveal"] && oddsInfo && (
             <p className="font-mono text-xs text-blue-400 tracking-widest">
               {oddsInfo}
-            </p>
+            </p>// doesn't show unless user clicks on SPIN
           )}
         </div>
 
