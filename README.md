@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<center> <h1><a href="https://scraper-flax-zeta.vercel.app/"> Scraper</a> </h1></center>
 
-## Getting Started
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=react,nextjs,tailwind,ts" />
+  <br/>
+  <a href=""><kbd>⚫️ shadcn-ui</kbd></a>
+</p>
+<br/><br/>
 
-First, run the development server:
+# What is Scraper?
+
+This is a website where people can ~~gamble~~ try their luck. It has a total of 4 games as of now that actually work: 
+- Rigged Slot: a slot machine which is rigged chances of giving the jackpot.
+- Wheel of Regret: Win big or lose big
+- Lootbox Hell: Items that might ruin or improve everything
+- All In Button: A 50% chance of winning or losing
+
+The website also has Upgrades to level up/level down your game. It also has a statistics page that shows details on how you wasted your time and how much you lost etc.
+There will be two upcoming games soon.
+
+# Features
+
+- 4 fun games
+- Upgrades
+- Stats page
+- Reset back
+- Theme toggle
+
+# Self Hosting Guide
+
+### Prerequisites
+
+- Node.js 20 or later
+- npm or bun package manager
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/avalynndev/scraper.git
+cd scraper
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Building for Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+By following these steps, you can host the Beacon In A Bottle web app on your own server and make it accessible to users.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Favalynndev%2Fscraper)
