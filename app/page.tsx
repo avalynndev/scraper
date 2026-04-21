@@ -117,7 +117,7 @@ export default function ScraperHomePage() {
       name: "DEALER IS A LIAR",
       description: "Trust nobody. Especially the dealer.",
       danger: "VARIABLE",
-      disabled: true,
+      disabled: false,
       color: "from-blue-600 to-cyan-600",
     },
   ];
