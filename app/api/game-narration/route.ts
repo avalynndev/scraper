@@ -18,11 +18,11 @@ interface NarrationResponse {
 }
 
 const client = new OpenRouter({
-  apiKey: process.env.HACKCLUB_API_KEY, 
+  apiKey: process.env.HACKCLUB_API_KEY,
   serverURL: "https://ai.hackclub.com/proxy/v1",
 });
 
-const DEALER_FALLBACK = [
+const DEALER_FALLBACK: Array<{ primaryText: string; secondaryText: string }> = [
   {
     primaryText: "Trust the next call. The streak is turning.",
     secondaryText: "The dealer smiles like they already saw the coin.",
@@ -39,28 +39,50 @@ const DEALER_FALLBACK = [
     primaryText: "You can call me a liar. You would not be wrong often.",
     secondaryText: "Confidence and honesty are unrelated metrics.",
   },
+  {
+    primaryText: "Every prediction I make is technically accurate.",
+    secondaryText: "The definition of technically is doing a lot of work.",
+  },
+  {
+    primaryText: "I have no reason to mislead you on this one.",
+    secondaryText: "And yet here we both are.",
+  },
 ];
 
-const ORACLE_FALLBACK = [
+const ORACLE_FALLBACK: Array<{
+  primaryText: string;
+  secondaryText: string;
+  favoredChoice: "SAFE" | "RISK";
+}> = [
   {
     primaryText: "The safe lane looks gentle, but hungry.",
     secondaryText: "The red eye drifts toward the right altar.",
-    favoredChoice: "RISK" as const,
+    favoredChoice: "RISK",
   },
   {
     primaryText: "Numbers line up in quiet rows tonight.",
     secondaryText: "The left altar glows in a softer tone.",
-    favoredChoice: "SAFE" as const,
+    favoredChoice: "SAFE",
   },
   {
     primaryText: "A sharp omen cuts through the room.",
     secondaryText: "The louder path may finally pay.",
-    favoredChoice: "RISK" as const,
+    favoredChoice: "RISK",
   },
   {
     primaryText: "The whisper says survive first, score later.",
     secondaryText: "The table exhales when you choose caution.",
-    favoredChoice: "SAFE" as const,
+    favoredChoice: "SAFE",
+  },
+  {
+    primaryText: "Something restless moves beneath the calm option.",
+    secondaryText: "The chamber does not always warn you directly.",
+    favoredChoice: "RISK",
+  },
+  {
+    primaryText: "The steady path holds weight tonight.",
+    secondaryText: "Volatility is expensive when funds are low.",
+    favoredChoice: "SAFE",
   },
 ];
 
@@ -74,10 +96,9 @@ function fallbackNarration(
       source: "fallback",
       primaryText: pick.primaryText,
       secondaryText: pick.secondaryText,
-      suggestedHonesty: 45 + (round % 20),
+      suggestedHonesty: 40 + (round % 25),
     };
   }
-
   const pick = ORACLE_FALLBACK[round % ORACLE_FALLBACK.length];
   return {
     source: "fallback",
@@ -87,49 +108,50 @@ function fallbackNarration(
   };
 }
 
-function parseAIJson(text: string) {
+function parseAIJson(text: string): Record<string, unknown> | null {
   const cleaned = text
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "");
-
+    .replace(/\s*```$/i, "")
+    .trim();
   try {
-    return JSON.parse(cleaned);
+    return JSON.parse(cleaned) as Record<string, unknown>;
   } catch {
     return null;
   }
 }
 
-async function fetchFromAI(
-  req: Required<
-    Pick<NarrationRequest, "game" | "round" | "balance" | "streak">
-  >,
-): Promise<NarrationResponse | null> {
+async function fetchFromAI(opts: {
+  game: NarrationGame;
+  round: number;
+  balance: number;
+  streak: number;
+}): Promise<NarrationResponse | null> {
   try {
+    const { game, round, balance, streak } = opts;
+
     const prompt =
-      req.game === "dealer"
-        ? `Return ONLY JSON:
+      game === "dealer"
+        ? `You are the narrator for a cynical casino game. Return ONLY valid JSON, no markdown, no extra text:
 {
-  "primaryText": "max 70 chars",
-  "secondaryText": "max 90 chars",
-  "suggestedHonesty": number between 20 and 80
+  "primaryText": "one sentence max 70 chars, cynical dealer voice",
+  "secondaryText": "one sentence max 90 chars, atmospheric detail",
+  "suggestedHonesty": integer between 20 and 80
 }
-Tone: cynical, stylish.
-round=${req.round}, balance=${req.balance}, streak=${req.streak}`
-        : `Return ONLY JSON:
+Context: round=${round}, playerBalance=${balance}, lossStreak=${streak}`
+        : `You are the narrator for a mysterious oracle game. Return ONLY valid JSON, no markdown, no extra text:
 {
-  "primaryText": "max 70 chars",
-  "secondaryText": "max 90 chars",
+  "primaryText": "one sentence max 70 chars, ominous oracle voice",
+  "secondaryText": "one sentence max 90 chars, cryptic atmospheric detail",
   "favoredChoice": "SAFE" or "RISK"
 }
-Tone: ominous.
-round=${req.round}, balance=${req.balance}, streak=${req.streak}`;
+Context: round=${round}, playerBalance=${balance}, lossStreak=${streak}`;
 
     const res = await client.chat.send({
       chatRequest: {
         messages: [{ role: "user", content: prompt }],
         model: "google/gemini-2.5-flash-lite-preview-09-2025",
-        temperature: 0.7,
+        temperature: 0.75,
         stream: false,
       },
     });

@@ -5,11 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
-  IconArrowLeft,
-  IconInfoCircle,
-  IconTriangleInvertedFilled,
-} from "@tabler/icons-react";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,6 +12,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  IconArrowLeft,
+  IconInfoCircle,
+  IconTriangleInvertedFilled,
+} from "@tabler/icons-react";
 import {
   loadState,
   saveState,
@@ -50,27 +50,36 @@ export default function OraclePage() {
   const [hydrated, setHydrated] = useState(false);
   const [balance, setBalance] = useState(100);
   const [upgrades, setUpgrades] = useState<OwnedUpgrades | null>(null);
+
   const [bet, setBet] = useState(20);
   const [round, setRound] = useState(1);
   const [plays, setPlays] = useState(0);
   const [wins, setWins] = useState(0);
   const [lossStreak, setLossStreak] = useState(0);
+
   const [isResolving, setIsResolving] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [omen, setOmen] = useState<Omen | null>(null);
+  const [loadingOmen, setLoadingOmen] = useState(false);
   const [history, setHistory] = useState<RoundEntry[]>([]);
 
   const calcChance = useMemo(
-    () => (choice: Choice, favoredChoice: Choice) => {
-      let chance = choice === "SAFE" ? 0.58 : 0.34;
-      if (choice === favoredChoice) chance += 0.08;
-      if (upgrades?.["house-anger"]) chance += 0.04;
-      if (upgrades?.["cursed-run"]) chance -= 0.06;
-      if (upgrades?.["house-provoke"]) chance -= 0.04;
-      if (upgrades?.["chaos-mode"]) chance += Math.random() * 0.3 - 0.15;
-      return Math.max(0.15, Math.min(0.85, chance));
-    },
-    [upgrades],
+    () =>
+      (
+        choice: Choice,
+        favoredChoice: Choice,
+        currentUpgrades: OwnedUpgrades | null,
+      ) => {
+        let chance = choice === "SAFE" ? 0.58 : 0.34;
+        if (choice === favoredChoice) chance += 0.08;
+        if (currentUpgrades?.["house-anger"]) chance += 0.04;
+        if (currentUpgrades?.["cursed-run"]) chance -= 0.06;
+        if (currentUpgrades?.["house-provoke"]) chance -= 0.04;
+        if (currentUpgrades?.["chaos-mode"])
+          chance += Math.random() * 0.3 - 0.15;
+        return Math.max(0.15, Math.min(0.85, chance));
+      },
+    [],
   );
 
   useEffect(() => {
@@ -80,21 +89,20 @@ export default function OraclePage() {
 
     try {
       const savedHistory = localStorage.getItem(HISTORY_KEY);
-      if (savedHistory) {
-        setHistory(JSON.parse(savedHistory) as RoundEntry[]);
-      }
+      if (savedHistory) setHistory(JSON.parse(savedHistory) as RoundEntry[]);
+
       const savedSession = localStorage.getItem(SESSION_KEY);
       if (savedSession) {
-        const parsed = JSON.parse(savedSession) as {
+        const s = JSON.parse(savedSession) as {
           round: number;
           plays: number;
           wins: number;
           lossStreak: number;
         };
-        setRound(parsed.round ?? 1);
-        setPlays(parsed.plays ?? 0);
-        setWins(parsed.wins ?? 0);
-        setLossStreak(parsed.lossStreak ?? 0);
+        setRound(s.round ?? 1);
+        setPlays(s.plays ?? 0);
+        setWins(s.wins ?? 0);
+        setLossStreak(s.lossStreak ?? 0);
       }
     } catch {}
 
@@ -110,9 +118,8 @@ export default function OraclePage() {
   }, [balance, hydrated]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    if (balance <= 0) return;
-    setBet((current) => Math.max(1, Math.min(balance, current)));
+    if (!hydrated || balance <= 0) return;
+    setBet((b) => Math.max(1, Math.min(balance, b)));
   }, [balance, hydrated]);
 
   useEffect(() => {
@@ -134,8 +141,9 @@ export default function OraclePage() {
   }, [hydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchOmen(targetRound: number, targetStreak: number) {
+    setLoadingOmen(true);
     try {
-      const response = await fetch("/api/game-narration", {
+      const res = await fetch("/api/game-narration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -145,8 +153,8 @@ export default function OraclePage() {
           streak: targetStreak,
         }),
       });
-      if (!response.ok) throw new Error("narration failed");
-      const data = (await response.json()) as Omen;
+      if (!res.ok) throw new Error("failed");
+      const data = (await res.json()) as Omen;
       setOmen({
         source: data.source,
         primaryText: data.primaryText,
@@ -160,19 +168,30 @@ export default function OraclePage() {
         secondaryText: "Fallback omen online. Choose with caution.",
         favoredChoice: "SAFE",
       });
+    } finally {
+      setLoadingOmen(false);
     }
   }
 
   function play(choice: Choice) {
     if (!hydrated || isResolving || !omen || balance < bet) return;
+
     setIsResolving(true);
     setLastResult(null);
     setBalance((b) => b - bet);
 
-    const chance = calcChance(choice, omen.favoredChoice);
+    const chance = calcChance(choice, omen.favoredChoice, upgrades);
     const won = Math.random() < chance;
-    const multiplier = choice === "SAFE" ? 1.8 : 3.4;
-    const payout = Math.floor(bet * multiplier);
+
+    const baseMult = choice === "SAFE" ? 1.8 : 3.4;
+    const mult = upgrades?.["chaos-mode"]
+      ? choice === "SAFE"
+        ? 2.5
+        : 5.0
+      : upgrades?.["volatility"]
+        ? baseMult * 0.75
+        : baseMult;
+    const payout = Math.floor(bet * mult);
 
     setTimeout(() => {
       setPlays((p) => p + 1);
@@ -186,22 +205,19 @@ export default function OraclePage() {
         setLastResult(`YOU WON +${payout} CRAPS`);
         recordSpin({ game: GAME_NAME, bet, payout });
       } else {
-        const nextLossStreak = lossStreak + 1;
-        setLossStreak(nextLossStreak);
-        recordLossStreak(nextLossStreak);
+        const nextStreak = lossStreak + 1;
+        setLossStreak(nextStreak);
+        recordLossStreak(nextStreak);
         setLastResult(`YOU LOST −${bet} CRAPS`);
         recordSpin({ game: GAME_NAME, bet, payout: 0 });
       }
 
-      setHistory((prev) => [
-        {
-          round,
-          choice,
-          won,
-          amount: won ? payout : bet,
-        },
-        ...prev,
-      ]);
+      setHistory((prev) =>
+        [{ round, choice, won, amount: won ? payout : bet }, ...prev].slice(
+          0,
+          10,
+        ),
+      );
       setIsResolving(false);
       void fetchOmen(nextRound, won ? 0 : lossStreak + 1);
     }, 850);
@@ -210,19 +226,21 @@ export default function OraclePage() {
   const winRate = plays > 0 ? ((wins / plays) * 100).toFixed(1) : "—";
   const safeChance =
     omen && upgrades?.["odds-reveal"]
-      ? `${(calcChance("SAFE", omen.favoredChoice) * 100).toFixed(1)}%`
-      : "—";
+      ? `${(calcChance("SAFE", omen.favoredChoice, upgrades) * 100).toFixed(1)}%`
+      : null;
   const riskChance =
     omen && upgrades?.["odds-reveal"]
-      ? `${(calcChance("RISK", omen.favoredChoice) * 100).toFixed(1)}%`
-      : "—";
+      ? `${(calcChance("RISK", omen.favoredChoice, upgrades) * 100).toFixed(1)}%`
+      : null;
 
   if (!hydrated) return null;
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(245,158,11,0.08)_0%,transparent_65%)]" />
+        <div
+          className={`absolute inset-0 ${upgrades?.["chaos-mode"] ? "bg-[radial-gradient(ellipse_at_bottom,rgba(239,68,68,0.1)_0%,transparent_65%)]" : "bg-[radial-gradient(ellipse_at_bottom,rgba(245,158,11,0.08)_0%,transparent_65%)]"}`}
+        />
       </div>
 
       <nav className="relative z-10 flex items-center justify-between p-6 border-b border-border">
@@ -233,7 +251,23 @@ export default function OraclePage() {
           <IconArrowLeft size={14} />
           BACK TO FLOOR
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap justify-end gap-y-2">
+          {upgrades?.["chaos-mode"] && (
+            <Badge
+              variant="outline"
+              className="border-red-900 text-red-400 font-mono text-xs animate-pulse"
+            >
+              CHAOS: ON
+            </Badge>
+          )}
+          {upgrades?.["cursed-run"] && (
+            <Badge
+              variant="outline"
+              className="border-purple-900 text-purple-400 font-mono text-xs"
+            >
+              CURSED
+            </Badge>
+          )}
           <Dialog>
             <DialogTrigger>
               <IconInfoCircle size={18} />
@@ -251,22 +285,32 @@ export default function OraclePage() {
                 <div>
                   <div className="text-xs opacity-40 mb-2">THE CHOICES</div>
                   <p>
-                    SAFE: steadier odds, lower payout. RISK: rough odds, bigger
-                    payout.
+                    SAFE: 58% base win chance, 1.8× payout. RISK: 34% base win
+                    chance, 3.4× payout.
                   </p>
                 </div>
                 <div className="border-t border-border pt-4 space-y-2">
-                  <div className="text-xs opacity-40 mb-2">ORACLE OMEN</div>
-                  <p>Each round fetches new omen text from Gemini.</p>
+                  <div className="text-xs opacity-40 mb-2">THE OMEN</div>
+                  <p>
+                    Each round the Oracle reveals an omen that favors either
+                    SAFE or RISK.
+                  </p>
                   <p className="opacity-60">
-                    If API fails, backup omen scripts keep the game playable.
+                    Picking the favored choice adds +8% to your win chance.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">AI NARRATION</div>
+                  <p>Omen text is generated by Gemini each round.</p>
+                  <p className="opacity-60">
+                    Falls back to built-in scripts if the API is unavailable.
                   </p>
                 </div>
                 <div className="border-t border-border pt-4 space-y-2">
                   <div className="text-xs opacity-40 mb-2">UPGRADES</div>
                   <p>
-                    Global upgrades still modify chances here, just like other
-                    games.
+                    Odds Reveal shows exact win % per choice. Chaos Mode raises
+                    payouts but randomises chances.
                   </p>
                 </div>
               </div>
@@ -302,15 +346,31 @@ export default function OraclePage() {
                 variant="outline"
                 className="border-border font-mono text-[10px] opacity-70"
               >
-                SOURCE: {(omen?.source ?? "fallback").toUpperCase()}
+                SOURCE: {(omen?.source ?? "—").toUpperCase()}
               </Badge>
             </div>
-            <div className="font-mono text-sm leading-relaxed">
-              {omen?.primaryText ?? "Loading omen..."}
-            </div>
-            <div className="text-xs font-mono opacity-40">
-              {omen?.secondaryText ?? "The chamber is warming up."}
-            </div>
+
+            {loadingOmen ? (
+              <div className="flex gap-1 items-center py-2">
+                {[0, 150, 300].map((d) => (
+                  <div
+                    key={d}
+                    className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce"
+                    style={{ animationDelay: `${d}ms` }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="font-mono text-sm leading-relaxed">
+                  {omen?.primaryText ?? "Loading omen…"}
+                </div>
+                <div className="text-xs font-mono opacity-40">
+                  {omen?.secondaryText ?? "The chamber is warming up."}
+                </div>
+              </>
+            )}
+
             <div className="flex items-center gap-2 text-xs font-mono opacity-30">
               <IconTriangleInvertedFilled size={12} />
               Favored path is hidden. Read the signal.
@@ -324,7 +384,8 @@ export default function OraclePage() {
             <div className="flex items-center border border-border">
               <button
                 onClick={() => setBet((v) => Math.max(1, v - 5))}
-                className="px-4 py-3 font-mono opacity-50 hover:opacity-100 transition-opacity border-r border-border"
+                disabled={isResolving}
+                className="px-4 py-3 font-mono opacity-50 hover:opacity-100 transition-opacity border-r border-border disabled:opacity-20"
               >
                 −
               </button>
@@ -333,7 +394,8 @@ export default function OraclePage() {
               </div>
               <button
                 onClick={() => setBet((v) => Math.min(balance, v + 5))}
-                className="px-4 py-3 font-mono opacity-50 hover:opacity-100 transition-opacity border-l border-border"
+                disabled={isResolving}
+                className="px-4 py-3 font-mono opacity-50 hover:opacity-100 transition-opacity border-l border-border disabled:opacity-20"
               >
                 +
               </button>
@@ -352,17 +414,30 @@ export default function OraclePage() {
               onClick={() => play("RISK")}
               disabled={isResolving || balance < bet || !omen}
               variant="outline"
-              className="py-6 font-black tracking-wide border-amber-900 text-amber-400 hover:bg-amber-950"
+              className="py-6 font-black tracking-wide border-amber-900 text-amber-400 hover:bg-amber-950 disabled:opacity-30"
             >
               RISK
             </Button>
           </div>
 
           <div className="text-xs font-mono opacity-30 space-y-1">
-            <p>SAFE payout: 1.8× • RISK payout: 3.4×</p>
-            {upgrades?.["odds-reveal"] && (
-              <p>
-                SAFE chance: {safeChance} • RISK chance: {riskChance}
+            <p>
+              SAFE payout:{" "}
+              {upgrades?.["chaos-mode"]
+                ? "2.5×"
+                : upgrades?.["volatility"]
+                  ? "1.35×"
+                  : "1.8×"}{" "}
+              · RISK payout:{" "}
+              {upgrades?.["chaos-mode"]
+                ? "5.0×"
+                : upgrades?.["volatility"]
+                  ? "2.55×"
+                  : "3.4×"}
+            </p>
+            {safeChance && riskChance && (
+              <p className="text-blue-400">
+                SAFE chance: {safeChance} · RISK chance: {riskChance}
               </p>
             )}
           </div>
@@ -396,13 +471,17 @@ export default function OraclePage() {
             <div className="text-xs font-mono opacity-30 tracking-widest mb-2">
               LAST RESULT
             </div>
-            <div
-              className={`font-mono text-sm font-black ${
-                lastResult?.includes("WON") ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {lastResult ?? "No rounds played."}
-            </div>
+            {isResolving ? (
+              <div className="text-xs font-mono opacity-30 animate-pulse">
+                Consulting the oracle…
+              </div>
+            ) : (
+              <div
+                className={`font-mono text-sm font-black ${lastResult?.includes("WON") ? "text-green-400" : lastResult ? "text-red-400" : "opacity-20"}`}
+              >
+                {lastResult ?? "No rounds played."}
+              </div>
+            )}
           </div>
 
           <div className="p-6 flex-1">
@@ -415,18 +494,18 @@ export default function OraclePage() {
                   History appears after first play.
                 </div>
               )}
-              {history.slice(0, 8).map((entry) => (
+              {history.slice(0, 8).map((entry, i) => (
                 <div
-                  key={`${entry.round}-${entry.choice}-${entry.amount}`}
+                  key={i}
                   className="border border-border p-2 text-xs font-mono flex items-center justify-between"
                 >
                   <span className="opacity-60">
-                    R{entry.round} • {entry.choice}
+                    R{entry.round} · {entry.choice}
                   </span>
                   <span
                     className={entry.won ? "text-green-400" : "text-red-400"}
                   >
-                    {entry.won ? `+${entry.amount}` : `-${entry.amount}`}
+                    {entry.won ? `+${entry.amount}` : `−${entry.amount}`}
                   </span>
                 </div>
               ))}
