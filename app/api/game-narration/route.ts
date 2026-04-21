@@ -128,7 +128,7 @@ round=${req.round}, balance=${req.balance}, streak=${req.streak}`;
     const res = await client.chat.send({
       chatRequest: {
         messages: [{ role: "user", content: prompt }],
-        model: "qwen/qwen3-32b",
+        model: "google/gemini-2.5-flash-lite-preview-09-2025",
         temperature: 0.7,
         stream: false,
       },
