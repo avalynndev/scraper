@@ -253,7 +253,6 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* Sidebar */}
         <div className="w-full lg:w-64 border-l border-border flex flex-col">
           <div className="p-6 border-b border-border">
             <div className="font-black">OWNED</div>

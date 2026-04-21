@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@openrouter/sdk": "^0.12.17",
     "@tabler/icons-react": "^3.41.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -97,6 +97,22 @@ export default function ScraperHomePage() {
       color: "from-red-600 to-orange-600",
     },
     {
+      id: "martingale",
+      name: "MARTINGALE SIM",
+      description: "Statistically guaranteed failure.",
+      danger: "CERTAIN",
+      disabled: false,
+      color: "from-gray-600 to-slate-600",
+    },
+    {
+      id: "oracle",
+      name: "ORACLE",
+      description: "Read the omen. Gamble.",
+      danger: "TRICKY",
+      disabled: false,
+      color: "from-indigo-600 to-purple-600",
+    },
+    {
       id: "dealer",
       name: "DEALER IS A LIAR",
       description: "Trust nobody. Especially the dealer.",
@@ -104,17 +120,9 @@ export default function ScraperHomePage() {
       disabled: true,
       color: "from-blue-600 to-cyan-600",
     },
-    {
-      id: "martingale",
-      name: "MARTINGALE SIM",
-      description: "Statistically guaranteed failure.",
-      danger: "CERTAIN",
-      disabled: true,
-      color: "from-gray-600 to-slate-600",
-    },
   ];
 
-  if (!hydrated) return null; 
+  if (!hydrated) return null;
 
   return (
     <div className="min-h-screen overflow-hidden relative">
@@ -159,7 +167,7 @@ export default function ScraperHomePage() {
           <h2 className="text-3xl font-black mb-8 tracking-tight flex items-center gap-4">
             <span>CASINO FLOOR</span>
             <span className="text-xs font-mono opacity-50 font-normal">
-              [6 WAYS TO LOSE EVERYTHING]
+              [7 WAYS TO LOSE EVERYTHING]
             </span>
           </h2>
 
