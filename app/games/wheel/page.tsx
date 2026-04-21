@@ -265,7 +265,6 @@ export default function WheelPage() {
         </div>
 
         <div className="relative flex items-center justify-center">
-          {/* Pointer */}
           <div
             className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-0 h-0"
             style={{
