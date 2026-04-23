@@ -4,7 +4,15 @@ import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { IconArrowLeft } from "@tabler/icons-react";
+import { IconArrowLeft, IconInfoCircle } from "@tabler/icons-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   loadState,
   saveState,
@@ -230,6 +238,53 @@ export default function WheelPage() {
               CHAOS: ON
             </Badge>
           )}
+          <Dialog>
+            <DialogTrigger>
+              <IconInfoCircle size={18} />
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black">
+                  HOW WHEEL WORKS
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Explanation of the Wheel of Regret mechanics
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 font-mono text-sm">
+                <div>
+                  <div className="text-xs opacity-40 mb-2">THE MECHANIC</div>
+                  <p>
+                    Spin the wheel and land on a segment. Each spin costs more
+                    than the last — the cost doubles every spin, up to 3200
+                    CRAPS.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">SEGMENTS</div>
+                  <p>• Win segments pay out directly to your balance.</p>
+                  <p>• Lose segments deduct from your balance.</p>
+                  <p>
+                    • CURSE activates a curse — future spins bias toward loss
+                    segments.
+                  </p>
+                  <p>• SPIN AGAIN gives you a free spin.</p>
+                  <p>• WORSE ODDS permanently shifts luck against you.</p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">UPGRADES</div>
+                  <p>
+                    Chaos Mode triples all win and loss values. Reduced
+                    Volatility softens swings to 70%. Odds Reveal shows the win
+                    segment ratio.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 text-center opacity-40 text-xs">
+                  Nobody stops early.
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Badge
             variant="outline"
             className="border-yellow-900 text-yellow-400 font-mono text-xs"
