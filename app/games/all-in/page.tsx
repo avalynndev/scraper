@@ -4,7 +4,15 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { IconArrowLeft } from "@tabler/icons-react";
+import { IconArrowLeft, IconInfoCircle } from "@tabler/icons-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   loadState,
   saveState,
@@ -59,7 +67,6 @@ export default function AllInPage() {
     if (bet > balance && balance > 0) setBet(balance);
   }, [balance]);
 
-
   const handleBetChange = (amount: number) => {
     setBet((b) => Math.max(1, Math.min(balance, b + amount)));
   };
@@ -81,20 +88,13 @@ export default function AllInPage() {
     let baseOdds = 0.5;
 
     if (upgrades?.["house-anger"]) baseOdds += 0.05;
-
     if (upgrades?.["cursed-run"]) baseOdds -= 0.08;
-
     if (upgrades?.["chaos-mode"]) baseOdds = 0.2 + Math.random() * 0.65;
-
     if (timeSinceLastClick < 500) baseOdds -= 0.05;
-
     if (lossStreak > 0) baseOdds -= lossStreak * 0.02;
-
     if (upgrades?.["house-provoke"]) baseOdds -= 0.03;
 
     const finalOdds = Math.max(0.25, Math.min(0.75, baseOdds));
-
-    const showOdds = upgrades?.["odds-reveal"] ?? false;
 
     const won = Math.random() < finalOdds;
 
@@ -185,6 +185,50 @@ export default function AllInPage() {
               ODDS: VISIBLE
             </Badge>
           )}
+          <Dialog>
+            <DialogTrigger>
+              <IconInfoCircle size={18} />
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black">
+                  HOW ALL-IN WORKS
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Explanation of the All-In Button mechanics
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 font-mono text-sm">
+                <div>
+                  <div className="text-xs opacity-40 mb-2">THE MECHANIC</div>
+                  <p>
+                    Set a bet and press the button. You either double your bet
+                    or lose it. Base odds are 50/50.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">THE RIG</div>
+                  <p>• Clicking too fast (under 500ms) costs you 5% odds.</p>
+                  <p>• Every loss in a row costs you another 2% odds.</p>
+                  <p>
+                    • Odds are clamped between 25% and 75% — the house always
+                    has an edge.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">UPGRADES</div>
+                  <p>
+                    Chaos Mode randomises odds wildly, and wins can pay 2× or
+                    3×. Cursed Run subtracts 8% from your base odds. Reduced
+                    Volatility caps swings at 70% of bet size.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 text-center opacity-40 text-xs">
+                  The button is watching you.
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Badge
             variant="outline"
             className="border-red-900 text-red-400 font-mono text-xs"
@@ -233,10 +277,8 @@ export default function AllInPage() {
                   max={balance}
                   onChange={(e) => {
                     let value = Number(e.target.value);
-
                     if (value < 1) value = 1;
                     if (value > balance) value = balance;
-
                     setBet(value);
                   }}
                   className="w-full h-full text-center border-0 rounded-none py-[1.08rem] shadow-none focus-visible:ring-0 font-black text-3xl tabular-nums"
