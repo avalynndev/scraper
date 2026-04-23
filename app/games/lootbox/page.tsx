@@ -4,7 +4,15 @@ import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { IconArrowLeft } from "@tabler/icons-react";
+import { IconArrowLeft, IconInfoCircle } from "@tabler/icons-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   loadState,
   saveState,
@@ -121,7 +129,6 @@ const ITEM_POOL: Item[] = [
   },
 ];
 
-
 type Tier = "COMMON" | "RARE" | "CURSED" | "LEGENDARY";
 
 const LOOT_TABLES: Record<Tier, string[]> = {
@@ -201,7 +208,6 @@ const TIER_BEAM: Record<Tier, string> = {
   CURSED: "#a855f7",
   LEGENDARY: "#eab308",
 };
-
 
 function rollItem(tier: Tier): Item {
   const pool = LOOT_TABLES[tier];
@@ -286,9 +292,7 @@ export default function LootboxPage() {
   const [inventory, setInventory] = useState<Item[]>([]);
   const [openCount, setOpenCount] = useState(0);
   const [fragments, setFragments] = useState(0);
-
   const [pending, setPending] = useState<PendingOpen | null>(null);
-
   const [reveal, setReveal] = useState<{ item: Item; tier: Tier } | null>(null);
   const [revealPhase, setRevealPhase] = useState<"enter" | "show" | "exit">(
     "enter",
@@ -323,7 +327,6 @@ export default function LootboxPage() {
     saveState(state);
     if (balance <= 0) recordBroke();
   }, [balance, hydrated]);
-
 
   const handleBoxClick = useCallback(
     (box: (typeof BOXES)[0]) => {
@@ -556,11 +559,9 @@ export default function LootboxPage() {
             >
               {reveal.item.emoji}
             </div>
-
             <div style={{ fontSize: "68px", lineHeight: 1, opacity: 0.88 }}>
               📦
             </div>
-
             <div
               style={{
                 position: "absolute",
@@ -673,6 +674,64 @@ export default function LootboxPage() {
               CURSED
             </Badge>
           )}
+          <Dialog>
+            <DialogTrigger>
+              <IconInfoCircle size={18} />
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black">
+                  HOW LOOTBOX WORKS
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Explanation of Lootbox Hell mechanics
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 font-mono text-sm">
+                <div>
+                  <div className="text-xs opacity-40 mb-2">THE MECHANIC</div>
+                  <p>
+                    Click a box 3 times to unlock it, then once more to open.
+                    Each tier costs more but has better item odds.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">TIERS</div>
+                  <p>• COMMON (10 CRAPS): mostly junk, occasional +50 CRAPS.</p>
+                  <p>
+                    • RARE (25 CRAPS): loaded dice, rabbit's feet, debt scrolls.
+                  </p>
+                  <p>
+                    • CURSED (50 CRAPS): bad items, but has Jackpot Fragments.
+                  </p>
+                  <p>
+                    • LEGENDARY (100 CRAPS): best chance at House Key and good
+                    items.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">ITEMS</div>
+                  <p>
+                    Items apply effects to all games — good and bad. Discarding
+                    an item removes its effect from your account, unless another
+                    item in your inventory still provides it.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">
+                    JACKPOT FRAGMENTS
+                  </div>
+                  <p>
+                    Collect 3 Jackpot Fragments to win 1000 CRAPS. Fragments are
+                    consumed on payout.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 text-center opacity-40 text-xs">
+                  Inventory holds 12 items. Discard to make room.
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Badge
             variant="outline"
             className="border-green-900 text-green-400 font-mono text-xs"
@@ -709,7 +768,6 @@ export default function LootboxPage() {
               const canAfford = balance >= box.cost;
               const isFull = inventory.length >= MAX_INVENTORY;
               const isDisabled = !canAfford || isFull;
-
               const glowStr = `rgba(${box.glowRgb},${box.glowA})`;
               const glowIntensity = isPending
                 ? `0 0 ${10 + clicks * 10}px ${glowStr}`
@@ -719,11 +777,7 @@ export default function LootboxPage() {
                 <div
                   key={box.id}
                   onClick={() => !isDisabled && handleBoxClick(box)}
-                  className={`border-2 ${box.borderClass} p-6 flex flex-col items-center gap-3 select-none ${
-                    isDisabled
-                      ? "opacity-40 cursor-not-allowed"
-                      : "cursor-pointer hover:opacity-90"
-                  }`}
+                  className={`border-2 ${box.borderClass} p-6 flex flex-col items-center gap-3 select-none ${isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:opacity-90"}`}
                   style={{
                     transition: "box-shadow 0.3s ease, opacity 0.2s",
                     boxShadow: isDisabled ? "none" : glowIntensity,
@@ -819,13 +873,7 @@ export default function LootboxPage() {
                     <div className="font-mono text-sm">{item.name}</div>
                   </div>
                   <div
-                    className={`text-xs font-mono ${
-                      item.type === "good"
-                        ? "text-green-400"
-                        : item.type === "bad"
-                          ? "text-red-400"
-                          : "opacity-40"
-                    }`}
+                    className={`text-xs font-mono ${item.type === "good" ? "text-green-400" : item.type === "bad" ? "text-red-400" : "opacity-40"}`}
                   >
                     {item.effect}
                   </div>
@@ -861,13 +909,7 @@ export default function LootboxPage() {
                 {inventory.map((item, i) => (
                   <div
                     key={i}
-                    className={`border px-3 py-2 flex items-center justify-between gap-2 ${
-                      item.type === "good"
-                        ? "border-green-900/50"
-                        : item.type === "bad"
-                          ? "border-red-900/50"
-                          : "border-border"
-                    }`}
+                    className={`border px-3 py-2 flex items-center justify-between gap-2 ${item.type === "good" ? "border-green-900/50" : item.type === "bad" ? "border-red-900/50" : "border-border"}`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-base shrink-0">{item.emoji}</span>
@@ -876,13 +918,7 @@ export default function LootboxPage() {
                           {item.name}
                         </div>
                         <div
-                          className={`font-mono text-xs truncate ${
-                            item.type === "good"
-                              ? "text-green-400"
-                              : item.type === "bad"
-                                ? "text-red-400"
-                                : "opacity-30"
-                          }`}
+                          className={`font-mono text-xs truncate ${item.type === "good" ? "text-green-400" : item.type === "bad" ? "text-red-400" : "opacity-30"}`}
                         >
                           {item.effect}
                         </div>
