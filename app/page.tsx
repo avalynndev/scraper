@@ -12,18 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ModeToggle } from "@/components/mode-toggle";
 import Link from "next/link";
-import {
-  loadState,
-  saveState,
-  recordSpin,
-  recordBroke,
-  recordLossStreak,
-  type OwnedUpgrades,
-} from "@/lib/gameStore";
+import { loadState, saveState, recordBroke } from "@/lib/gameStore";
 
 export default function ScraperHomePage() {
   const [hydrated, setHydrated] = React.useState(false);
-
+  const [isFirstVisit, setIsFirstVisit] = React.useState(false);
   const [balance, setBalanceState] = React.useState(100);
   const [houseMessage, setHouseMessage] = React.useState(
     "The house is watching.",
@@ -43,6 +36,13 @@ export default function ScraperHomePage() {
   React.useEffect(() => {
     const state = loadState();
     setBalanceState(state.balance);
+
+    const visited = localStorage.getItem("scraper_visited_v1");
+    if (!visited) {
+      setIsFirstVisit(true);
+      localStorage.setItem("scraper_visited_v1", "1");
+    }
+
     setHydrated(true);
   }, []);
 
@@ -163,6 +163,36 @@ export default function ScraperHomePage() {
           </div>
         </header>
 
+        {isFirstVisit && (
+          <div className="mb-12 border border-border p-8 space-y-4 max-w-2xl">
+            <div className="text-xs font-mono opacity-30 tracking-widest">
+              WELCOME
+            </div>
+            <p className="font-mono text-sm leading-relaxed opacity-70">
+              Scraper is a fake casino built to show you exactly how gambling
+              works — and why it always ends the same way.
+            </p>
+            <p className="font-mono text-sm leading-relaxed opacity-50">
+              You start with 100 CRAPS. Every game is rigged against you in a
+              different way: some reduce your odds the longer you play, some
+              double-cost every round, some give you items that quietly make
+              everything worse. None of your money is real. The losses are
+              illustrative. The house always wins.
+            </p>
+            <p className="font-mono text-sm leading-relaxed opacity-40">
+              Spend CRAPS in the Upgrades shop to bend (or break) the odds.
+              Check your Stats page for a brutally honest summary of everything
+              you've done wrong. Then do it again anyway.
+            </p>
+            <button
+              className="text-xs font-mono opacity-30 hover:opacity-60 transition-opacity mt-2"
+              onClick={() => setIsFirstVisit(false)}
+            >
+              got it, let me lose some money →
+            </button>
+          </div>
+        )}
+
         <div className="mb-16">
           <h2 className="text-3xl font-black mb-8 tracking-tight flex items-center gap-4">
             <span>CASINO FLOOR</span>
@@ -247,7 +277,7 @@ export default function ScraperHomePage() {
               <Link href="/upgrades">
                 <Button
                   variant="outline"
-                  className="w-full border-purple-900 text-purple-400 "
+                  className="w-full border-purple-900 text-purple-400"
                 >
                   Browse Shop →
                 </Button>
@@ -315,7 +345,6 @@ export default function ScraperHomePage() {
             transform: translateY(0);
           }
         }
-
         @keyframes gradient {
           0%,
           100% {
@@ -325,7 +354,6 @@ export default function ScraperHomePage() {
             background-position: 100% 50%;
           }
         }
-
         @keyframes scan {
           0% {
             transform: translateY(0);

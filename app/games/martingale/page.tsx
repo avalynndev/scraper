@@ -4,7 +4,15 @@ import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { IconArrowLeft } from "@tabler/icons-react";
+import { IconArrowLeft, IconInfoCircle } from "@tabler/icons-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   loadState,
   saveState,
@@ -154,17 +162,15 @@ function BalanceGraph({
   }
 
   const maxVal = Math.max(...history, 1);
-  const range = maxVal;
 
   const pts = history.map((v, i) => ({
     x: (i / (history.length - 1)) * W,
-    y: H - (v / range) * H,
+    y: H - (v / maxVal) * H,
   }));
 
   const polyline = pts
     .map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`)
     .join(" ");
-
   const areaPath =
     `M ${pts[0].x.toFixed(1)},${H} ` +
     pts.map((p) => `L ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") +
@@ -172,7 +178,6 @@ function BalanceGraph({
 
   const ruinIdx = history.findIndex((v) => v === 0);
   const ruinPt = ruinIdx >= 0 ? pts[ruinIdx] : null;
-
   const peakIdx = history.indexOf(Math.max(...history));
   const peakPt = pts[peakIdx];
 
@@ -198,9 +203,7 @@ function BalanceGraph({
             strokeWidth="0.5"
           />
         ))}
-
         <path d={areaPath} fill={fillColor} />
-
         <polyline
           points={polyline}
           fill="none"
@@ -209,7 +212,6 @@ function BalanceGraph({
           strokeLinejoin="round"
           opacity={isRunning ? 0.4 : 0.7}
         />
-
         {!ruinPt && peakPt && (
           <circle
             cx={peakPt.x}
@@ -219,7 +221,6 @@ function BalanceGraph({
             opacity="0.8"
           />
         )}
-
         {ruinPt && (
           <>
             <line
@@ -236,7 +237,6 @@ function BalanceGraph({
           </>
         )}
       </svg>
-
       {ruinPt && (
         <div className="absolute bottom-2 right-0 text-xs font-mono text-red-400 opacity-60">
           ← RUIN POINT
@@ -288,7 +288,7 @@ export default function MartingalePage() {
   }, [balance, hydrated]);
 
   useEffect(() => {
-    if (bet > balance && balance > 0) setStartingBet(balance);
+    if (startingBet > balance && balance > 0) setStartingBet(balance);
   }, [balance]);
 
   const clamp = (v: number, min: number, max: number) =>
@@ -301,18 +301,17 @@ export default function MartingalePage() {
     setGraphHistory([]);
 
     let step = 0;
-    const totalSteps = 16;
+    const totalSteps = 32;
 
     runningRef.current = setInterval(() => {
       step++;
 
-      const partialLen = step * 3;
-      const partial = Array.from({ length: partialLen }, (_, i) =>
-        Math.max(
-          0,
-          balance * (1 + ((Math.random() - 0.52) * 0.3 * (i + 1)) / 10),
-        ),
-      );
+      const partialLen = Math.ceil((step / totalSteps) * 60);
+      const partial = Array.from({ length: partialLen }, (_, i) => {
+        const t = i / Math.max(partialLen - 1, 1);
+        const trend = 1 + (Math.random() - 0.54) * 0.4 * t;
+        return Math.max(0, balance * trend);
+      });
       setGraphHistory(sampleArray(partial, 40));
 
       if (step >= totalSteps) {
@@ -352,7 +351,7 @@ export default function MartingalePage() {
         localStorage.setItem(HISTORY_KEY, JSON.stringify(sim));
         setIsRunning(false);
       }
-    }, 50);
+    }, 120);
   };
 
   const handleReset = () => {
@@ -379,8 +378,6 @@ export default function MartingalePage() {
       : result?.verdict === "PROFITABLE"
         ? "text-green-400"
         : "";
-
-  const bet = startingBet;
 
   const settings = [
     {
@@ -455,6 +452,68 @@ export default function MartingalePage() {
               CURSED
             </Badge>
           )}
+          <Dialog>
+            <DialogTrigger>
+              <IconInfoCircle size={18} />
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black">
+                  HOW MARTINGALE WORKS
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Explanation of the Martingale simulation
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 font-mono text-sm">
+                <div>
+                  <div className="text-xs opacity-40 mb-2">THE STRATEGY</div>
+                  <p>
+                    The Martingale strategy doubles your bet after every loss,
+                    then resets to the starting bet after a win. In theory, one
+                    win always recovers all previous losses.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">WHY IT FAILS</div>
+                  <p>
+                    A long loss streak forces your bet to grow exponentially.
+                    You will eventually either run out of money or hit the table
+                    limit before recovering. It is not a question of if — only
+                    when.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">THE SETTINGS</div>
+                  <p>
+                    Starting Bet is your initial stake. Multiplier controls how
+                    fast the bet grows on losses (2× is classic). Max Bet Cap
+                    simulates table limits. Max Rounds caps the simulation
+                    length. Win Chance is the probability of winning each round.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">REAL MONEY</div>
+                  <p>
+                    Running a sim costs your starting bet. The sim result scales
+                    back to a proportional real gain or loss on your balance.
+                    Ruin in the sim always costs the full entry.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="text-xs opacity-40 mb-2">UPGRADES</div>
+                  <p>
+                    Chaos Mode randomises win chance per round. Cursed Run
+                    subtracts 5%. Reduced Volatility caps each bet's impact at
+                    75%.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 text-center opacity-40 text-xs">
+                  Statistically guaranteed failure.
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Badge
             variant="outline"
             className="border-zinc-600 text-zinc-400 font-mono text-xs"
